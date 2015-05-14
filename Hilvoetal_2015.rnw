@@ -231,13 +231,14 @@ survwrapp("ALDH5A1")
 
 The survival plots for all analysed genes can be inspected with the following code:
 
-<<message=FALSE,tidy=FALSE,fig.height=6,fig.width=10>>=
+<<message=FALSE,fig.height=6,fig.width=10>>=
 par(mfrow=c(1,2))
 pvalues <- sapply(colnames(CNAtable), survwrapp, plot=TRUE)
 @
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\clearpage
 \section{Session info: R-packages and their versions used for this analysis}
 <<>>=
 sessionInfo()
