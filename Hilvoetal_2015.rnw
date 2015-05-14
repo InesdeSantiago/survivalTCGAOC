@@ -1,0 +1,249 @@
+% SUPPLEMENTARY MATERIAL
+% !Rnw weave = knitr
+% -*-coding:latin-1-*-
+\documentclass[paper=a4,notitlepage,abstracton]{scrartcl}
+\usepackage{url}
+\usepackage{gensymb}
+\usepackage[round]{natbib}
+\usepackage[colorlinks=false, linktocpage=true]{hyperref} % must be last
+
+%\usepackage[latin1]{inputenc}
+%\usepackage[T1]{fontenc}
+%\usepackage{xcolor}
+%\usepackage{url}
+%\usepackage{gensymb}
+%\usepackage[round]{natbib}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% START
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{Supporting Information for Hilvo~\emph{et~al.}~(2015)}
+\date{\today}
+\begin{document}
+
+<<include=FALSE>>=
+opts_chunk$set(concordance=TRUE)
+opts_knit$set(verbose=TRUE)
+@
+
+\maketitle
+
+%%%% TOC
+\thispagestyle{empty}
+\tableofcontents
+\clearpage
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\clearpage
+\section{Libraries and functions}
+
+The R scripts provided in this vignette fully reproduces the TCGA survival analyses of Hilvo et al (2015).
+The following R packages may be required:
+\begin{itemize}
+\item \texttt{survival} 
+\end{itemize}
+
+We use a local library for some low level functions.
+This will be loaded from \url{http://www.markowetzlab.org/supplements/} if not present on the local machine.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{External Data Sources}
+
+The package Hilvo2015-supplement-data.Rdata contains the publicly available data described in the following subsections.
+This will be loaded from \url{http://www.markowetzlab.org/supplements/} if not present on the local machine.
+
+<<loadRdata,message=TRUE>>=
+## load data file from local copy or from URL
+if (file.exists("Hilvo2015-supplementary-data.Rdata")){
+    load("Hilvo2015-supplementary-data.Rdata")
+    cat("Hilvo2015-supplementary-data.Rdata loaded from local copy")
+} else {
+    load(url("http://www.markowetzlab.org/supplements/Hilvo2015-supplementary-data.Rdata"))
+    cat("Hilvo2015-supplementary-data.Rdata loaded from URL") }
+@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{TCGA data}
+
+Data from 489 high-grade serous ovarian cancers reported by The Cancer Genome Atlas Research Network (Nature, 2011, 609-615) were obtained from \url{https://tcga-data.nci.nih.gov/docs/publications/ov_2011/}.
+The \texttt{exp.TCGAOC} object contains the gene expression matrix obtained from \url{https://tcga-data.nci.nih.gov/docs/publications/ov_2011/}:
+<<GeneExpMat>>=
+dim(exp.TCGAOC)
+@
+
+The \texttt{clinical.TCGAOC} object contains the clinical annotations for all samples obtained from:
+\url{https://tcga-data.nci.nih.gov/docs/dictionary/TCGA_BCR_DataDictionary.xml}
+<<ClinData>>=
+dim(clinical.TCGAOC)
+colnames(clinical.TCGAOC)
+@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Copy Number Alterations (CNA)}
+
+The CNA data was downloaded from cBioPortal (\url{http://cbioportal.org}) using the TCGA set of 489 high-grade serous ovarian cancers.
+Only 316 tumours have CNA data available:
+<<message=FALSE,tidy=FALSE>>=
+dim(CNAtable)
+@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Survival analysis for the TCGA cohort}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+To validate the metabolomics findings with gene expression data, survival analyses were performed for The Cancer Genome Atlas (TCGA) data. 
+Survival analysis based on gene expression and copy number was performed for genes of those selected KEGG pathways that showed most interesting metabolomics results: fatty acid import and beta oxidation, omega oxidation, ketone body production, pentose phosphate pathway reactions related to 3-erythritol accumulation, leucine degradation reactions related to 3-hydroxyisovaleric acid accumulation, peroxisomal biogenesis factors related to Zellweger syndrome as well as ALDH5A1 gene encoding for SSADH enzyme.
+
+<<message=FALSE,tidy=FALSE>>=
+colnames(CNAtable)
+@
+
+For each gene of interest, we subdivided the TCGA Ovarian Cancer cohort according to: 
+\begin{itemize}
+\item Four quartiles of gene expression
+\item Different copy number alterations: Loss, wt and gain
+\end{itemize}
+
+First, we simplified the Gistic scores obtained from the downloaded table as "loss","wt","gain":
+<<>>=
+CNAallgenes <- CNAtable
+CNAallgenes[CNAallgenes==-2] <- "loss" #hom del
+CNAallgenes[CNAallgenes==-1] <- "loss" #het loss
+CNAallgenes[CNAallgenes==0] <- "wt"
+CNAallgenes[CNAallgenes==1] <- "gain" #gain
+CNAallgenes[CNAallgenes==2] <- "gain" #amp
+CNAallgenes <- t(CNAallgenes)
+@
+
+<<message=FALSE,tidy=TRUE>>=
+#Survival wrapper function
+survwrapp <- function(gene, plot=TRUE)
+    {  
+    #par(mfrow=c(1,2),mar=c(20,4,5,4)) 
+    
+    #by quartiles
+    group <- cut(as.numeric(exp.TCGAOC[gene,]), 
+                 quantile(as.numeric(exp.TCGAOC[gene,]), probs =c(0,0.25,0.5,0.75,1)))
+    names(group) <- names(exp.TCGAOC[gene,])
+    survmat <- cbind("groups"=group[rownames(clinical.TCGAOC)],
+                     clinical.TCGAOC)
+    pvalue1 <- plotsurv(survmat, colors = c("blue","lightblue","gray","red"),
+                        maint="", plot=plot)
+    if (plot) {title(main=paste(gene,"\nBy expression quartile"))}
+    
+    #by mutation type
+    group <- factor(CNAallgenes[gene,], levels=c("loss","wt","gain"))
+    survmat <- cbind("groups"=group[rownames(clinical.TCGAOC)],
+                     clinical.TCGAOC)
+    pvalue2 <- plotsurv(survmat, 
+                        colors = c("turquoise4","darkgray","orangered"),
+                        maint="", plot=plot)
+    
+    if (plot) {title(main=paste(gene,"\nBy CNA type")) }
+    
+    #this function returns the chisq p-values obtained in 
+    #both cases "by_ExpQuartiles" and "by_CNA" 
+    return(c("by_ExpQuartiles"=pvalue1, "by_CNA"=pvalue2))
+    }
+
+plotsurv <- function(survmat, colors, maint, timecol="OverallSurvival.mos.",
+                     eventcol="VITALSTATUS", plot=TRUE)
+    {
+    library(survival)
+    
+    #fix survmat
+    if (eventcol == "VITALSTATUS")
+        {
+        survmat$VITALSTATUS <- as.character(survmat$VITALSTATUS)
+        survmat$VITALSTATUS[survmat$VITALSTATUS=="LIVING"] <- 0
+        survmat$VITALSTATUS[survmat$VITALSTATUS=="DECEASED"] <- 1
+        survmat$VITALSTATUS <- as.numeric(survmat$VITALSTATUS)
+        }
+    if (eventcol == "ProgressionFreeStatus")
+        {
+        survmat$ProgressionFreeStatus <- as.character(survmat$ProgressionFreeStatus)
+        survmat$ProgressionFreeStatus[survmat$ProgressionFreeStatus=="DiseaseFree"] <- 0
+        survmat$ProgressionFreeStatus[survmat$ProgressionFreeStatus=="Recurred/Progressed"] <- 1
+        survmat$ProgressionFreeStatus <- as.numeric(survmat$ProgressionFreeStatus)
+        }
+    survmat <- subset(survmat, select=c("groups", timecol, eventcol))
+    survmat <- na.omit(survmat)
+    
+    #plot
+    ss <- Surv(as.numeric(survmat[,timecol]), survmat[,eventcol])
+    if (plot) {
+      plot(survfit(ss ~ survmat$groups), col=colors,xlab=
+             paste(timecol, "[months]"),
+        ylab="Survival Probability", lwd=3,las=1,main=maint)
+      legendtext = paste(levels(survmat$group),": n=",
+                         table(survmat$group),sep="")
+      legend("topright",col=colors, legend=legendtext,lty=1)
+    }
+    
+    #Pvalue and HR
+    res <- survdiff(ss ~ survmat$group)
+    
+    if (plot) {
+      p <- format(1-pchisq(res$chisq,1), scientific=TRUE, nsmall=3)
+      text(100,0.6,paste("p-value=",p))
+      options(scipen=10)
+    }
+    
+    p <- 1-pchisq(res$chisq,1)
+    return(p)
+}
+@
+
+\subsection{Supplementary Table S7: survival analyses using TCGA data}
+
+Survival analysis was performed for the following genes:
+
+<<>>=
+genes <- c('ALDH5A1','DLD','PEX6','HMGCL','ACSL3','ADH1B','HLCS','AUH','ALDH7A1',
+'MCCC2','PEX12','OXCT1','ALDH1B1','EHHADH','HMGCS1','FABP4','ECI1','HADHA','CPT1B')
+@
+
+For each one of the selected genes, we investigated if low expression and loss in copy numbers of the gene were associated with worse overall survival. The following code reproduces the p-values in supplementary table 7.
+
+<<>>=
+library(knitr)
+pvalues <- t(sapply(genes, survwrapp, plot=FALSE))
+kable(pvalues)
+@
+
+
+\subsection{Figure 2E and Figure S5: Low gene expression and loss of ALDH5A1 copy number were both associated to poor overall survival}
+
+Intriguingly, the most significant findings were obtained for the ALDH5A1 gene, as in the TCGA data set both low expression and loss in copy numbers of the gene were associated with worse overall survival of the patients.
+
+<<message=FALSE,tidy=FALSE,fig.height=6,fig.width=10>>=
+par(mfrow=c(1,2))
+survwrapp("ALDH5A1")
+@
+
+The survival plots for all analysed genes can be inspected with the following code:
+
+<<message=FALSE,tidy=FALSE,fig.height=6,fig.width=10>>=
+par(mfrow=c(1,2))
+pvalues <- sapply(colnames(CNAtable), survwrapp, plot=TRUE)
+@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Session info: R-packages and their versions used for this analysis}
+<<>>=
+sessionInfo()
+@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% References
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\clearpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}
