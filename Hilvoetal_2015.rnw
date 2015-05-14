@@ -188,13 +188,14 @@ plotsurv <- function(survmat, colors, maint, timecol="OverallSurvival.mos.",
     #Pvalue and HR
     res <- survdiff(ss ~ survmat$group)
     
+    p <- 1-pchisq(res$chisq,1)
+    if (p < 0.001) {p <- format(p, scientific=TRUE, nsmall=3)}else{p <- round(p,3)}
+      
     if (plot) {
-      p <- format(1-pchisq(res$chisq,1), scientific=TRUE, nsmall=3)
       text(100,0.6,paste("p-value=",p))
       options(scipen=10)
     }
     
-    p <- 1-pchisq(res$chisq,1)
     return(p)
 }
 @
