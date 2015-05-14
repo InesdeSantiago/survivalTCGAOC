@@ -59,8 +59,10 @@ if (file.exists("Hilvo2015-supplementary-data.Rdata")){
     load("Hilvo2015-supplementary-data.Rdata")
     cat("Hilvo2015-supplementary-data.Rdata loaded from local copy")
 } else {
-    load(url("http://www.markowetzlab.org/supplements/Hilvo2015-supplementary-data.Rdata"))
-    cat("Hilvo2015-supplementary-data.Rdata loaded from URL") }
+    #load(url("https://github.com/InesdeSantiago/survivalTCGAOC/blob/master/Hilvo2015-supplementary-data.Rdata?raw=true"))
+    #cat("Hilvo2015-supplementary-data.Rdata loaded from URL") 
+    cat("please download file from github repository: https://github.com/InesdeSantiago/survivalTCGAOC/blob/master/Hilvo2015-supplementary-data.Rdata") 
+}
 @
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
