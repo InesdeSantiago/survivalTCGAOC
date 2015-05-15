@@ -43,25 +43,24 @@ The following R packages may be required:
 \item \texttt{survival} 
 \end{itemize}
 
-We use a local library for some low level functions.
-This will be loaded from \url{http://www.markowetzlab.org/supplements/} if not present on the local machine.
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{External Data Sources}
 
-The package Hilvo2015-supplement-data.Rdata contains the publicly available data described in the following subsections.
-This will be loaded from \url{http://www.markowetzlab.org/supplements/} if not present on the local machine.
+The Rdata file "Hilvo2015-supplementary-data.Rdata" contains the publicly available data described in the following subsections. This should be present on the local machine.
 
-<<loadRdata,message=TRUE>>=
+<<loadRdata,message=TRUE, tidy=FALSE>>=
 ## load data file from local copy or from URL
 if (file.exists("Hilvo2015-supplementary-data.Rdata")){
     load("Hilvo2015-supplementary-data.Rdata")
     cat("Hilvo2015-supplementary-data.Rdata loaded from local copy")
 } else {
-    #load(url("https://github.com/InesdeSantiago/survivalTCGAOC/blob/master/Hilvo2015-supplementary-data.Rdata?raw=true"))
+    #load(url("https://github.com/InesdeSantiago/survivalTCGAOC/
+    #blob/master/Hilvo2015-supplementary-data.Rdata?raw=true"))
     #cat("Hilvo2015-supplementary-data.Rdata loaded from URL") 
-    cat("please download file from github repository: https://github.com/InesdeSantiago/survivalTCGAOC/blob/master/Hilvo2015-supplementary-data.Rdata") 
+    cat("please download Hilvo2015-supplementary-data.Rdata file 
+        from github repository: 
+        https://github.com/InesdeSantiago/survivalTCGAOC/") 
 }
 @
 
@@ -122,7 +121,7 @@ CNAallgenes[CNAallgenes==2] <- "gain" #amp
 CNAallgenes <- t(CNAallgenes)
 @
 
-<<message=FALSE,tidy=TRUE>>=
+<<message=FALSE,tidy=FALSE>>=
 #Survival wrapper function
 survwrapp <- function(gene, plot=TRUE)
     {  
@@ -130,11 +129,13 @@ survwrapp <- function(gene, plot=TRUE)
     
     #by quartiles
     group <- cut(as.numeric(exp.TCGAOC[gene,]), 
-                 quantile(as.numeric(exp.TCGAOC[gene,]), probs =c(0,0.25,0.5,0.75,1)))
+                 quantile(as.numeric(exp.TCGAOC[gene,]), 
+                          probs =c(0,0.25,0.5,0.75,1)))
     names(group) <- names(exp.TCGAOC[gene,])
     survmat <- cbind("groups"=group[rownames(clinical.TCGAOC)],
                      clinical.TCGAOC)
-    pvalue1 <- plotsurv(survmat, colors = c("blue","lightblue","gray","red"),
+    pvalue1 <- plotsurv(survmat, colors = 
+                          c("blue","lightblue","gray","red"),
                         maint="", plot=plot)
     if (plot) {title(main=paste(gene,"\nBy expression quartile"))}
     
@@ -142,8 +143,8 @@ survwrapp <- function(gene, plot=TRUE)
     group <- factor(CNAallgenes[gene,], levels=c("loss","wt","gain"))
     survmat <- cbind("groups"=group[rownames(clinical.TCGAOC)],
                      clinical.TCGAOC)
-    pvalue2 <- plotsurv(survmat, 
-                        colors = c("turquoise4","darkgray","orangered"),
+    pvalue2 <- plotsurv(survmat, colors = 
+                          c("turquoise4","darkgray","orangered"),
                         maint="", plot=plot)
     
     if (plot) {title(main=paste(gene,"\nBy CNA type")) }
@@ -153,7 +154,8 @@ survwrapp <- function(gene, plot=TRUE)
     return(c("by_ExpQuartiles"=pvalue1, "by_CNA"=pvalue2))
     }
 
-plotsurv <- function(survmat, colors, maint, timecol="OverallSurvival.mos.",
+plotsurv <- function(survmat, colors, maint, 
+                     timecol="OverallSurvival.mos.",
                      eventcol="VITALSTATUS", plot=TRUE)
     {
     library(survival)
@@ -168,10 +170,14 @@ plotsurv <- function(survmat, colors, maint, timecol="OverallSurvival.mos.",
         }
     if (eventcol == "ProgressionFreeStatus")
         {
-        survmat$ProgressionFreeStatus <- as.character(survmat$ProgressionFreeStatus)
-        survmat$ProgressionFreeStatus[survmat$ProgressionFreeStatus=="DiseaseFree"] <- 0
-        survmat$ProgressionFreeStatus[survmat$ProgressionFreeStatus=="Recurred/Progressed"] <- 1
-        survmat$ProgressionFreeStatus <- as.numeric(survmat$ProgressionFreeStatus)
+        survmat$ProgressionFreeStatus <- 
+          as.character(survmat$ProgressionFreeStatus)
+        survmat$ProgressionFreeStatus[
+          survmat$ProgressionFreeStatus=="DiseaseFree"] <- 0
+        survmat$ProgressionFreeStatus[
+          survmat$ProgressionFreeStatus=="Recurred/Progressed"] <- 1
+        survmat$ProgressionFreeStatus <- as.numeric(
+          survmat$ProgressionFreeStatus)
         }
     survmat <- subset(survmat, select=c("groups", timecol, eventcol))
     survmat <- na.omit(survmat)
@@ -191,7 +197,8 @@ plotsurv <- function(survmat, colors, maint, timecol="OverallSurvival.mos.",
     res <- survdiff(ss ~ survmat$group)
     
     p <- 1-pchisq(res$chisq,1)
-    if (p < 0.001) {p <- format(p, scientific=TRUE, nsmall=3)}else{p <- round(p,3)}
+    if (p < 0.001) {p <- format(p, scientific=TRUE, nsmall=3)}else{
+      p <- round(p,3)}
       
     if (plot) {
       text(100,0.6,paste("p-value=",p))
@@ -206,9 +213,10 @@ plotsurv <- function(survmat, colors, maint, timecol="OverallSurvival.mos.",
 
 Survival analysis was performed for the following genes:
 
-<<>>=
-genes <- c('ALDH5A1','DLD','PEX6','HMGCL','ACSL3','ADH1B','HLCS','AUH','ALDH7A1',
-'MCCC2','PEX12','OXCT1','ALDH1B1','EHHADH','HMGCS1','FABP4','ECI1','HADHA','CPT1B')
+<<tidy=FALSE>>=
+genes <- c('ALDH5A1','DLD','PEX6','HMGCL','ACSL3','ADH1B','HLCS','AUH',
+           'ALDH7A1','MCCC2','PEX12','OXCT1','ALDH1B1','EHHADH','HMGCS1',
+           'FABP4','ECI1','HADHA','CPT1B')
 @
 
 For each one of the selected genes, we investigated if low expression and loss in copy numbers of the gene were associated with worse overall survival. The following code reproduces the p-values in supplementary table 7.
